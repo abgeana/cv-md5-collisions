@@ -7,7 +7,6 @@ import (
 
 type JfifSegment struct {
 	Marker    byte
-	Length    int
 	Data      []byte
 	ImageData []byte // ImageData contains the entropy-coded segment which comes immediately after an SOS segment.
 }
@@ -58,25 +57,42 @@ func SegmentName(marker byte) string {
 	}
 }
 
-func segmentLength(b1 byte, b2 byte) int {
+// Length returns the 16 bit integer at positions 2 and 3 (0 based indices). This integer denotes 2 plus the amount of
+// data following the first 4 bytes.
+func (s *JfifSegment) Length() int {
+	if len(s.Data) < 4 {
+		glog.Fatal("not enough data in this segment to parse the two length bytes")
+	}
+
+	b1 := s.Data[2]
+	b2 := s.Data[3]
+
 	return (int(b1)<<8)&0xff00 + int(b2)
 }
 
-func identifySegment(data []byte, pos int) (*JfifSegment, int, error) {
-	if data[pos] != 0xff {
+func parseSegment(bytes []byte, pos int) (*JfifSegment, error) {
+	if bytes[pos] != 0xff {
 		glog.Fatalf("segment at offset 0x%x does not start with 0xff", pos)
 	}
 
-	marker := data[pos+1]
+	marker := bytes[pos+1]
 
 	switch marker {
 
+	// segments with length 2 (i.e. only the 0xff byte and the marker)
 	case MARKER_SOI:
 		fallthrough
 	case MARKER_EOI:
 		glog.Infof("identified %s segment\n", SegmentName(marker))
-		return &JfifSegment{Marker: marker, Length: 2, Data: data[pos : pos+2]}, pos + 2, nil
+		data := make([]byte, 2)
+		copy(data, bytes[pos:])
+		return &JfifSegment{
+			Marker:    marker,
+			Data:      data,
+			ImageData: make([]byte, 0),
+		}, nil
 
+	// segments with length greater than 2
 	case MARKER_APP0:
 		fallthrough
 	case MARKER_DQT:
@@ -88,25 +104,37 @@ func identifySegment(data []byte, pos int) (*JfifSegment, int, error) {
 	case MARKER_SOS:
 		fallthrough
 	case MARKER_COM:
-		dataLength := segmentLength(data[pos+2], data[pos+3]) + 2
-		segment := JfifSegment{Marker: marker, Length: dataLength, Data: data[pos : pos+dataLength]}
-		glog.Infof("identified %s segment of length 0x%x at offset 0x%x\n", SegmentName(marker), dataLength, pos)
+		data := make([]byte, 4)
+		copy(data, bytes[pos:])
 
-		if marker != MARKER_SOS {
-			return &segment, pos + dataLength, nil
+		segment := JfifSegment{
+			Marker:    marker,
+			Data:      data,
+			ImageData: make([]byte, 0),
 		}
 
-		pos += dataLength
-		segment.ImageData = make([]byte, 0)
+		segment.Data = append(segment.Data, bytes[pos+len(segment.Data):pos+segment.Length()+2]...)
+		glog.Infof("identified %s segment of length 0x%x at offset 0x%x\n", SegmentName(marker), len(segment.Data), pos)
+
+		// if this is not a Start of Scan segment, then the job is finished
+		if segment.Marker != MARKER_SOS {
+			return &segment, nil
+		}
+
+		// if this is a Start of Scan segment, then additional bytes are appended to the segment data
+		// keep appending bytes to ImageData while
+		//  * byte value is different than 0xff
+		//  * byte value is 0xff and the following byte is 0x00
+		pos += len(segment.Data)
 		stop := false
 		for !stop {
-			if data[pos] != 0xff {
-				segment.ImageData = append(segment.ImageData, data[pos])
+			if bytes[pos] != 0xff {
+				segment.ImageData = append(segment.ImageData, bytes[pos])
 				pos += 1
 			} else {
-				if data[pos+1] == 0x00 { // compressed 0xff value
-					segment.ImageData = append(segment.ImageData, data[pos])
-					segment.ImageData = append(segment.ImageData, data[pos+1])
+				if bytes[pos+1] == 0x00 { // compressed 0xff value
+					segment.ImageData = append(segment.ImageData, bytes[pos])
+					segment.ImageData = append(segment.ImageData, bytes[pos+1])
 					pos += 2
 				} else { // part of next marker
 					stop = true
@@ -114,10 +142,10 @@ func identifySegment(data []byte, pos int) (*JfifSegment, int, error) {
 			}
 		}
 
-		return &segment, pos, nil
+		return &segment, nil
 
 	default:
-		return nil, pos, fmt.Errorf("unknown segment marker %02x at offset 0x%x\n", marker, pos+1)
+		return nil, fmt.Errorf("unknown segment marker %02x at offset 0x%x\n", marker, pos+1)
 	}
 }
 
@@ -127,16 +155,11 @@ func ParseJfif(data []byte) []*JfifSegment {
 	}
 
 	segments := make([]*JfifSegment, 0)
-	segment, pos, err := identifySegment(data, 0)
-	if err == nil {
-		segments = append(segments, segment)
-	} else {
-		glog.Fatal(err.Error())
-	}
+	pos := 0
 
 	for pos < len(data) {
-		segment, pos, err = identifySegment(data, pos)
-		if err == nil {
+		if segment, err := parseSegment(data, pos); err == nil {
+			pos += len(segment.Data) + len(segment.ImageData)
 			segments = append(segments, segment)
 		} else {
 			glog.Fatal(err.Error())
