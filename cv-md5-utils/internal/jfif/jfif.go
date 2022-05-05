@@ -34,8 +34,8 @@ const (
 	MARKER_COM = 0xfe
 )
 
-func SegmentName(marker byte) string {
-	switch marker {
+func (s *JfifSegment) Name() string {
+	switch s.Marker {
 	case MARKER_SOI:
 		return "Start Of Image"
 	case MARKER_APP0:
@@ -83,14 +83,17 @@ func parseSegment(bytes []byte, pos int) (*JfifSegment, error) {
 	case MARKER_SOI:
 		fallthrough
 	case MARKER_EOI:
-		glog.Infof("identified %s segment\n", SegmentName(marker))
 		data := make([]byte, 2)
 		copy(data, bytes[pos:])
-		return &JfifSegment{
+
+		segment := JfifSegment{
 			Marker:    marker,
 			Data:      data,
 			ImageData: make([]byte, 0),
-		}, nil
+		}
+
+		glog.Infof("identified %s segment\n", segment.Name())
+		return &segment, nil
 
 	// segments with length greater than 2
 	case MARKER_APP0:
@@ -114,7 +117,7 @@ func parseSegment(bytes []byte, pos int) (*JfifSegment, error) {
 		}
 
 		segment.Data = append(segment.Data, bytes[pos+len(segment.Data):pos+segment.Length()+2]...)
-		glog.Infof("identified %s segment of length 0x%x at offset 0x%x\n", SegmentName(marker), len(segment.Data), pos)
+		glog.Infof("identified %s segment of length 0x%x at offset 0x%x\n", segment.Name(), len(segment.Data), pos)
 
 		// if this is not a Start of Scan segment, then the job is finished
 		if segment.Marker != MARKER_SOS {
