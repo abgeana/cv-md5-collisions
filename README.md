@@ -57,6 +57,8 @@ cv-md5-utils/split -logtostderr -path image.jpeg
 
 #### 3.1. Prepare the collision prefix
 
+TODO add here the image collision step 1
+
 ##### 3.1.1. Generate the PDF prefix
 
 This file is created manually by means of `dd`. It starts with something like this:
@@ -91,7 +93,14 @@ There are several things here to be noted:
 
 ##### 3.1.2. Craft the collision prefix
 
-The collision prefix is directly fed to the `poc_no.sh` script which computes the **UniColl* blocks.
+The collision prefix is directly fed to the `poc_no.sh` script which computes the **UniColl** blocks.
 
-If part 1 is being generated, then the collision prefix starts with the aforementioned PDF prefix. Otherwise, the
-collision prefix for all other parts is (TODO which file from the previous part).
+If part 1 is being generated, then the collision prefix starts with the aforementioned PDF prefix appended with the
+common JFIF segments SOI and APP0. Otherwise, the collision prefix for all other parts is (TODO which file from the
+previous part).
+
+The next step is to append a comment section which pads the previous data to a length of 7 mod 64. The reason for 7 is
+that, after appending the beginning of yet another comment section, the MSB byte of the `uint16_t` length field will be
+on position 10 of the collision block.
+
+Lastly, the starting sequence of a comment section is added, meaning bytes `0xff, 0xfe, 0x01, 0x00`.
