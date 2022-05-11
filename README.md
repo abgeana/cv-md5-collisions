@@ -26,7 +26,17 @@ size of the section. These two bytes are the ones that are being targetted by th
 
 ## JFIF collisions
 
-TODO: lenght byte of comment is incremented by 1
+The main idea behind JFIF collisions is that a comment section is placed in such a way that the MSB byte of the length
+`uint16_t` is the 10th byte of the prefix, which gets incremented by 1. The result is two blobs which hash to the same
+digest, but interpreted differently by JFIF parsers.
+
+In one blob, the comment section is 0x100 bytes long (the short comment), whereas in the second blob the comment section
+is 0x200 bytes long (the long comment). As a result, there is around 0x100 bytes of data which in one blob is parsed,
+whereas in the other blob is considered part of the comment.
+
+In the blob where the data is parsed, it is set to yet another comment where the length of the comment covers all other
+sections in the JFIF, such that they are not interpreted. This is done for each part, for a total of 16 parts (because
+there are 16 hex digits).
 
 ## Steps
 
@@ -47,7 +57,7 @@ cv-md5-utils/split -logtostderr -path image.jpeg
 
 #### 3.1. Prepare the collision prefix
 
-##### 3.1.1. The PDF prefix
+##### 3.1.1. Generate the PDF prefix
 
 This file is created manually by means of `dd`. It starts with something like this:
 
@@ -78,3 +88,10 @@ There are several things here to be noted:
    beginning there was no way to know what the exact size of the image would be. As such, the first set of collisions
    had an incorrect prefix, but a correct size. After the initial set of collisions, I fixed the prefix and redid the
    collisions with the correct prefix to generate images with a matching size.
+
+##### 3.1.2. Craft the collision prefix
+
+The collision prefix is directly fed to the `poc_no.sh` script which computes the **UniColl* blocks.
+
+If part 1 is being generated, then the collision prefix starts with the aforementioned PDF prefix. Otherwise, the
+collision prefix for all other parts is (TODO which file from the previous part).
