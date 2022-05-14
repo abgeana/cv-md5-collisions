@@ -204,7 +204,6 @@ func mkPart(nibble int, part int) error {
 	} else {
 	}
 
-	// os.RemoveAll(workdir) if failure
 	return nil
 }
 
@@ -225,6 +224,7 @@ func main() {
 		for done == false {
 			if err := mkPart(flagNibble, part); err != nil {
 				glog.Info(err.Error())
+				os.RemoveAll(fmt.Sprintf("part %02d", part))
 			} else {
 				done = true
 			}
