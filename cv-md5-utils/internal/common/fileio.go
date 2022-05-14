@@ -24,3 +24,11 @@ func CopyFile(src, dst string) {
 	input := ReadFile(src)
 	WriteFile(dst, input)
 }
+
+func CatToFile(dst string, src ...string) {
+	content := make([]byte, 0)
+	for _, f := range src {
+		content = append(content, ReadFile(f)...)
+	}
+	WriteFile(dst, content)
+}
