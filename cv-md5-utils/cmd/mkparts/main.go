@@ -174,7 +174,8 @@ func mkPart(part int) error {
 
 		/* pad both files until the short comment ends
 		 * this data is not interpreted in either of the collision files
-		 * the amount of padding is 137 = 0x100 - 16 * 7 - 7
+		 * the amount of padding is
+		 * 137 = 0x100 (length of segment data) - 0x79 (amount of bytes in segment with collision data) + 2
 		 */
 		padding := make([]byte, 137)
 		collision1Data = append(collision1Data, padding...)
