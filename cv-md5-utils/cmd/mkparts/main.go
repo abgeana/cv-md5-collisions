@@ -98,7 +98,7 @@ func mkPart(nibble int, part int) error {
 	} else {
 		// the input for subsequent parts is '07 jfif short' from the previous part
 		common.CopyFile(
-			fmt.Sprintf("part %02d/07 jfif short", part-1),
+			fmt.Sprintf("part %02d/08 jfif short", part-1),
 			fmt.Sprintf("part %02d/01 starting prefix", part),
 		)
 	}
