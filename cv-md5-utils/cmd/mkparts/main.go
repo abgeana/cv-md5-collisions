@@ -4,7 +4,6 @@ import (
 	"cv-md5-utils/internal/common"
 	"encoding/binary"
 	"flag"
-	"fmt"
 	"github.com/golang/glog"
 	"io/ioutil"
 	"math"
@@ -14,6 +13,11 @@ import (
 	"syscall"
 	"time"
 )
+
+var flagNibble int
+var flagPartFrom int
+var flagPartTo int
+var flagColor string
 
 func runPocNo(prefixFile string) error {
 	glog.Info("executing poc_no.sh")
@@ -74,13 +78,13 @@ func generateJfifSegments(segmentsPath, fileName string) []byte {
 	return segmentsData
 }
 
-func mkPart(nibble int, part int) error {
-	workdir := fmt.Sprintf("part %02d", part)
+func mkPart(part int) error {
+	workdir := common.PathToPart(part)
 	os.Mkdir(workdir, 0775)
 
 	// change the working directory when making the current part
 	cwd, _ := os.Getwd()
-	os.Chdir(filepath.Join(cwd, workdir))
+	os.Chdir(workdir)
 	defer os.Chdir(cwd)
 
 	/* ======================================
@@ -93,15 +97,21 @@ func mkPart(nibble int, part int) error {
 		// the common jfif sections are SOI and APP0
 		common.CatToFile(
 			"01 starting prefix",
-			fmt.Sprintf("../../../pdf prefixes/nibble %02d/prefix.bin", nibble),
-			"../../../original/0/00 Start Of Image",
-			"../../../original/0/01 Application0",
+			filepath.Join(
+				common.PathToCurrentNibble(),
+				"prefix.bin",
+			),
+			common.PathToOriginalSegment(0, "00 Start Of Image"),
+			common.PathToOriginalSegment(0, "01 Application0"),
 		)
 	} else {
-		// the input for subsequent parts is '07 jfif short' from the previous part
+		// the input for subsequent parts is "08 jfif short" from the previous part
 		common.CopyFile(
-			fmt.Sprintf("part %02d/08 jfif short", part-1),
-			fmt.Sprintf("part %02d/01 starting prefix", part),
+			filepath.Join(
+				common.PathToPart(part-1),
+				"08 jfif short",
+			),
+			"01 starting prefix",
 		)
 	}
 
@@ -174,7 +184,7 @@ func mkPart(nibble int, part int) error {
 
 		// create the "06 jfif segments" file
 		segmentsData := generateJfifSegments(
-			fmt.Sprintf("../../../original/%x", part),
+			common.PathToOriginal(part),
 			"06 jfif segments",
 		)
 
@@ -208,23 +218,22 @@ func mkPart(nibble int, part int) error {
 }
 
 func main() {
-	var flagNibble int
-	var flagPartFrom int
-	var flagPartTo int
-
 	flag.IntVar(&flagNibble, "nibble", 1, "")
 	flag.IntVar(&flagPartFrom, "part-from", 1, "")
 	flag.IntVar(&flagPartTo, "part-to", 16, "")
+	flag.StringVar(&flagColor, "color", "white on blue", "")
 	flag.Parse()
+
+	common.PathSetColor(flagColor)
+	common.PathSetNibble(flagNibble)
 
 	for part := flagPartFrom; part <= flagPartTo; part++ {
 		glog.Infof("making nibble %02d, part %x\n", flagNibble, part)
-
 		done := false
 		for done == false {
-			if err := mkPart(flagNibble, part); err != nil {
+			if err := mkPart(part); err != nil {
 				glog.Info(err.Error())
-				os.RemoveAll(fmt.Sprintf("part %02d", part))
+				os.RemoveAll(common.PathToPart(part))
 			} else {
 				done = true
 			}
