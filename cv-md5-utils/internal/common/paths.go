@@ -34,6 +34,7 @@ func PathSetNibble(n int) {
 func PathToOriginal(digit int) string {
 	return filepath.Join(
 		rootPath(),
+		"collisions",
 		color,
 		"original",
 		fmt.Sprintf("%x", digit),

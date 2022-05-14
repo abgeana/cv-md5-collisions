@@ -173,9 +173,9 @@ func mkPart(part int) error {
 		collision2Data := common.ReadFile("04 collision2 long com")
 
 		/* pad both files until the short comment ends
-		         * this data is not interpreted in either of the collision files
-				 * the amount of padding is 137 = 0x100 - 16 * 7 - 7
-		*/
+		 * this data is not interpreted in either of the collision files
+		 * the amount of padding is 137 = 0x100 - 16 * 7 - 7
+		 */
 		padding := make([]byte, 137)
 		collision1Data = append(collision1Data, padding...)
 		collision2Data = append(collision2Data, padding...)
