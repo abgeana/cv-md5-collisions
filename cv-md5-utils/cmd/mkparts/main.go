@@ -78,8 +78,10 @@ func mkPart(nibble int, part int) error {
 	workdir := fmt.Sprintf("part %02d", part)
 	os.Mkdir(workdir, 0775)
 
+	// change the working directory when making the current part
 	cwd, _ := os.Getwd()
 	os.Chdir(filepath.Join(cwd, workdir))
+	defer os.Chdir(cwd)
 
 	/* ======================================
 	 * STEP 3.1.2. Craft the collision prefix
