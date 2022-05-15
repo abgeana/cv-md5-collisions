@@ -41,7 +41,7 @@ func main() {
 	))
 	fJpeg := finalData[pdfPrefixSize:]
 	common.WriteFile(
-		filepath.Join(jpegsDir, "0.jpeg"),
+		filepath.Join(jpegsDir, "f.jpeg"),
 		fJpeg,
 	)
 
