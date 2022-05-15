@@ -87,11 +87,6 @@ func mkPart(part int) error {
 	os.Chdir(workdir)
 	defer os.Chdir(cwd)
 
-	/* ======================================
-	 * STEP 3.1.2. Craft the collision prefix
-	 * ======================================
-	 */
-
 	if part == 1 {
 		// the input for the first part is the pdf prefix and common jfif sections
 		// the common jfif sections are SOI and APP0
