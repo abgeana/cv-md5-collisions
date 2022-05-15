@@ -206,7 +206,7 @@ func mkPart(part int) error {
 		common.WriteFile("08 jfif long", jfifLongData)
 	} else {
 		/* no collisions are needed for the final part
-		 * for this part, we only add all the segments to the startin prefix
+		 * for this part, we only add all the segments to the starting prefix
 		 */
 		startingPrefix := common.ReadFile("01 starting prefix")
 		segmentsData := generateJfifSegments(
