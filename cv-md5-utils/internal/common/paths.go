@@ -68,3 +68,14 @@ func PathToPart(part int) string {
 		fmt.Sprintf("part %02d", part),
 	)
 }
+
+func PathToPDFPrefix() string {
+	return filepath.Join(
+		rootPath(),
+		"collisions",
+		color,
+		"pdf prefixes",
+		fmt.Sprintf("nibble %02d", nibble),
+		"prefix.bin",
+	)
+}

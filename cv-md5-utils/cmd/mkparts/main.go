@@ -97,10 +97,7 @@ func mkPart(part int) error {
 		// the common jfif sections are SOI and APP0
 		common.CatToFile(
 			"01 starting prefix",
-			filepath.Join(
-				common.PathToCurrentNibble(),
-				"prefix.bin",
-			),
+			common.PathToPDFPrefix(),
 			common.PathToOriginalSegment(0, "00 Start Of Image"),
 			common.PathToOriginalSegment(0, "01 Application0"),
 		)
@@ -185,7 +182,7 @@ func mkPart(part int) error {
 
 		// create the "06 jfif segments" file
 		segmentsData := generateJfifSegments(
-			common.PathToOriginal(part),
+			common.PathToOriginal(part-1),
 			"06 jfif segments",
 		)
 
@@ -213,6 +210,18 @@ func mkPart(part int) error {
 		jfifLongData = append(jfifLongData, segmentsData...)
 		common.WriteFile("08 jfif long", jfifLongData)
 	} else {
+		/* no collisions are needed for the final part
+		 * for this part, we only add all the segments to the startin prefix
+		 */
+		startingPrefix := common.ReadFile("01 starting prefix")
+		segmentsData := generateJfifSegments(
+			common.PathToOriginal(part-1),
+			"02 jfif segments",
+		)
+		common.WriteFile(
+			"03 final",
+			append(startingPrefix, segmentsData...),
+		)
 	}
 
 	return nil
