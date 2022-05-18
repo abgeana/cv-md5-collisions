@@ -14,6 +14,7 @@ func main() {
 	var flagNibble int
 	flag.StringVar(&flagColor, "color", "white on blue", "")
 	flag.IntVar(&flagNibble, "nibble", 1, "")
+	flag.Parse()
 
 	common.PathSetColor(flagColor)
 	common.PathSetNibble(flagNibble)
