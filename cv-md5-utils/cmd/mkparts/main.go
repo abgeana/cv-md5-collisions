@@ -232,6 +232,12 @@ func main() {
 	common.PathSetColor(flagColor)
 	common.PathSetNibble(flagNibble)
 
+	_, err := os.Stat(common.PathToCurrentNibble())
+	if err != nil {
+		// this most probably means that the nibble directory does not exist
+		os.Mkdir(common.PathToCurrentNibble(), 0775)
+	}
+
 	for part := flagPartFrom; part <= flagPartTo; part++ {
 		glog.Infof("making nibble %02d, part %x\n", flagNibble, part)
 		done := false
