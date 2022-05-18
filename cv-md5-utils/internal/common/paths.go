@@ -14,7 +14,8 @@ var nibble int
 func rootPath() string {
 	path, _ := os.Getwd()
 	for path != "/" {
-		if strings.HasSuffix(path, "cv-md5-collisions") {
+		if strings.HasSuffix(path, "cv-md5-collisions") ||
+			strings.HasSuffix(path, "md5") {
 			return path
 		}
 		path = filepath.Join(path, "..")
